@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+#Data Files
+data/raw/
+data/final/
+mlflow.db
+configs/mlflow_config.yaml
