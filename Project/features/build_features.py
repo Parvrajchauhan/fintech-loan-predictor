@@ -1,16 +1,6 @@
 import pandas as pd
 import numpy as np
 
-paths = {
-        "application_train": "../data/raw/application_train.csv",
-        "bureau": "../data/raw/bureau.csv",
-        "bureau_balance": "../data/raw/bureau_balance.csv",
-        "pos": "../data/raw/POS_CASH_balance.csv",
-        "installments": "../data/raw/installments_payments.csv",
-        "previous": "../data/raw/previous_application.csv",
-        "credit_card": "../data/raw/credit_card_balance.csv",
-    }
-
 #application tavle
 def build_application_features(app_path):
     app = pd.read_csv(app_path)
@@ -35,6 +25,11 @@ def build_application_features(app_path):
         "Annuity_to_Credit_Ratio","EMPLOYED_FLAG"
     ]
     app['EMPLOYED_FLAG'] = (app['DAYS_EMPLOYED'] < 365243).astype(int)
+    app['DAYS_BIRTH'] = abs(app['DAYS_BIRTH']) / 365
+    app['DAYS_REGISTRATION'] = abs(app['DAYS_REGISTRATION']) / 365
+    for col in ['Credit_to_Income_Ratio', 'Annuity_to_Income_Ratio', 'Annuity_to_Credit_Ratio']:
+        upper_limit = app[col].quantile(0.99)
+        app[col] = app[col].clip(upper=upper_limit)
     return app[selected_cols]
 
 
@@ -164,7 +159,7 @@ def build_all_features(paths: dict):
     bureau_f = build_bureau_features(paths["bureau"], paths["bureau_balance"])
     pos_f = build_pos_features(paths["pos"])
     inst_f = build_installment_features(paths["installments"])
-    prev_f = build_previous_application_features(paths["previous"])
+    prev_f = build_previous_application_features(paths["previous_application"])
     credit_f= build_credit_card_features(paths["credit_card"])
 
     features = (
