@@ -30,10 +30,11 @@ def evaluate(model, X, y):
 
     mae = np.mean(np.abs(np.expm1(preds) - np.expm1(y)))
     rmse = np.sqrt(np.mean((np.expm1(preds) - np.expm1(y)) ** 2))
+    mape = np.mean(np.abs((np.expm1(y) - np.expm1(preds)) / np.expm1(y))) * 100
 
     residuals = y - preds
 
-    return mae, rmse, residuals
+    return mae, rmse, residuals,mape
 
 
 def plot_residuals(residuals):
@@ -57,12 +58,13 @@ if __name__ == "__main__":
 
     model = mlflow.lightgbm.load_model("models:/loan_amount_regressor@production")
 
-    mae, rmse, residuals = evaluate(model, X, y)
+    mae, rmse, residuals,mape = evaluate(model, X, y)
 
     plot_residuals(residuals)
 
     mlflow.log_metric("eval_mae", mae)
     mlflow.log_metric("eval_rmse", rmse)
+    mlflow.log_metric("eval_mape", mape)
     mlflow.log_artifact("residuals.png")
 
-    print(f"MAE: {mae:.2f} | RMSE: {rmse:.2f}")
+    print(f"MAE: {mae:.2f} | RMSE: {rmse:.2f} | MAPE: {mape:.2f}%")
