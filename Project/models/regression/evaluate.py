@@ -37,6 +37,38 @@ def evaluate(model, X, y):
     return mae, rmse, residuals,mape
 
 
+def segment_analysis(model,X,y):
+    # Segment analysis
+    loan_sizes = np.expm1(y) 
+    list=[]
+    preds=model.predict(X)
+    errors = np.abs(np.expm1(preds) - np.expm1(y))
+    quartiles = np.percentile(loan_sizes, [25, 50, 75])
+    print("MAPE by loan size quartile:")
+    for i, (low, high) in enumerate([(0, quartiles[0]),(quartiles[0], quartiles[1]),
+                                     (quartiles[1], quartiles[2]),(quartiles[2], np.inf)]):
+            mask = (loan_sizes >= low) & (loan_sizes < high)
+            if mask.sum() > 0:
+                 segment_mape = np.mean(errors[mask] / loan_sizes[mask]) * 100
+                 list.append(segment_mape)
+                 print(f"Q{i+1} (${low:,.0f}-${high:,.0f}): {segment_mape:.1f}%")
+    mlflow.log_metric("Q1",list[0])
+    mlflow.log_metric("Q2",list[1])
+    mlflow.log_metric("Q3",list[2])
+    mlflow.log_metric("Q4",list[3])
+    
+    # Cost of errors
+    average_loan = np.mean(loan_sizes)
+    print(f"\nBusiness Impact:")
+    print(f"Average loan: ${average_loan:,.0f}")
+    print(f"Average error: ${mae:,.0f}")
+    print(f"Error as % of loan: {mae/average_loan*100:.1f}%")
+    mlflow.log_metric("Error as percentageof loan",mae/average_loan*100)
+    portfolio_value = 10_000_000
+    avg_error_rate = mae / average_loan
+    print(f"\nFor ${portfolio_value:,.0f} portfolio:")
+    print(f"Expected prediction error: ${portfolio_value * avg_error_rate:,.0f}")
+
 def plot_residuals(residuals):
     plt.figure(figsize=(6, 4))
     plt.hist(residuals, bins=50)
@@ -46,7 +78,6 @@ def plot_residuals(residuals):
     plt.tight_layout()
     plt.savefig("residuals.png")
     plt.close()
-
 
 if __name__ == "__main__":   
     mlflow.set_experiment("loan_amount_regression_prob")
@@ -68,3 +99,6 @@ if __name__ == "__main__":
     mlflow.log_artifact("residuals.png")
 
     print(f"MAE: {mae:.2f} | RMSE: {rmse:.2f} | MAPE: {mape:.2f}%")
+    segment_analysis(model,X,y)
+
+    

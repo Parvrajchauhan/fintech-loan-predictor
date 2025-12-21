@@ -27,6 +27,7 @@ paths = {
     "credit_card": DATA_DIR / "credit_card_balance.csv",
 }
 
+
 final_features_regression = [
 
     # numeric
@@ -41,15 +42,13 @@ final_features_regression = [
     "EXT_SOURCE_2",
     "EXT_SOURCE_3",
 
-    "Credit_to_Income_Ratio",
     "Annuity_to_Income_Ratio",
 
     # POS (light usage signals)
-    "pos_num_loans",
     "pos_mean_cnt_instalment",
 
     # Previous applications
-    "avg_prev_amt_requested",
+    "avg_prev_amt_credit",
     "prev_num_approved",
 
     # Credit card
@@ -63,7 +62,6 @@ final_features_regression = [
     "NAME_HOUSING_TYPE",
     "OCCUPATION_TYPE",
     "ORGANIZATION_TYPE",
-
 ]
 
 
@@ -86,7 +84,7 @@ def build_model():
         learning_rate=0.06,
         num_leaves=128,
         max_depth=-1,
-        n_estimators=800,
+        n_estimators=820,
         min_child_samples=30,
         subsample=0.8,
         colsample_bytree=0.8,
@@ -108,8 +106,9 @@ def train_model(X, y):
     val_preds = model.predict(X_val)
     mae = np.mean(np.abs(np.expm1(val_preds) - np.expm1(y_val)))
     rmse = np.sqrt(np.mean((np.expm1(val_preds) - np.expm1(y_val)) ** 2))
+    mape = np.mean(np.abs((np.expm1(y_val) - np.expm1(val_preds)) / np.expm1(y_val))) * 100
 
-    return model, mae, rmse
+    return model, mae, rmse,mape
 
 
 
@@ -124,10 +123,12 @@ if __name__ == "__main__":
         df = apply_imputation(df, stats)
         X, y = load_data(df)
 
-        model, val_mae, val_rmse = train_model(X, y)
+        model, val_mae, val_rmse,val_mape= train_model(X, y)
 
         mlflow.log_metric("val_mae", val_mae)
         mlflow.log_metric("val_rmse", val_rmse)
+        
+        mlflow.log_metric("MAPE",val_mape)
         mlflow.log_param("model_type", "LightGBM_Regressor")
         mlflow.log_param("n_estimators", model.n_estimators)
         for param_name, param_value in model.get_params().items():
@@ -141,7 +142,8 @@ if __name__ == "__main__":
             registered_model_name="loan_amount_regressor",
         )
 
-        print(f"Training complete | MAE: {val_mae:.2f} | RMSE: {val_rmse:.2f}")
+        print(f"Training complete | MAE: {val_mae:.2f} | RMSE: {val_rmse:.2f}| MAPE:{val_mape:.2f}")
+        
         client = MlflowClient()
 
         model_name = "loan_amount_regressor"
@@ -151,5 +153,4 @@ if __name__ == "__main__":
             name=model_name,
             version=latest_version,
             alias="production",
-
         )

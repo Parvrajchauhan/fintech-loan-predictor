@@ -134,7 +134,7 @@ final_features_classification = [
 TARGET = "TARGET"
 ID_COL = "SK_ID_CURR"
 MODEL_NAME = "loan_default_classifier"
-THRESHOLD = 0.07
+THRESHOLD = 0.45
 
 
 def load_data(df:pd.DataFrame):
@@ -193,10 +193,6 @@ if __name__ == "__main__":
         ks_scores = tpr - fpr
         threshold = 0.45
 
-        best_idx = np.argmax(ks_scores)
-        best_threshold = thresholds[best_idx]
-        best_ks = ks_scores[best_idx]
-
         y_pred = (val_probs >= threshold).astype(int)
 
         roc_auc = roc_auc_score(y_val, val_probs)
@@ -238,4 +234,4 @@ if __name__ == "__main__":
             version=latest_version,
         )
 
-        print(f"Training complete |{best_threshold}|{best_ks} |ROC-AUC: {roc_auc:.4f} | recall: {recall:.4f} | precision: {precision:.4f} | ks: {ks_scores.max():.4f}")
+        print(f"Training complete |ROC-AUC: {roc_auc:.4f} | recall: {recall:.4f} | precision: {precision:.4f} | ks: {ks_scores.max():.4f}")
