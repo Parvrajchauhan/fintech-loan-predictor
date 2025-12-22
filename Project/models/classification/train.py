@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import mlflow
+import joblib
 import mlflow.xgboost
 from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
@@ -129,6 +130,7 @@ final_features_classification = [
     "ORGANIZATION_TYPE",
 ]
 
+joblib.dump(final_features_classification, "model_features_class.pkl")
 
 
 TARGET = "TARGET"
@@ -175,6 +177,7 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
 
     with mlflow.start_run():
+        mlflow.log_artifact("model_features_class.pkl")
         df = build_all_features(paths)
         stats = fit_imputer(df)
         df = apply_imputation(df, stats)

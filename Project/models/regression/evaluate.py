@@ -2,6 +2,7 @@
 
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 import mlflow
 import mlflow.lightgbm
 import matplotlib.pyplot as plt
@@ -86,6 +87,10 @@ if __name__ == "__main__":
     stats = fit_imputer(df)
     df = apply_imputation(df, stats)
     X, y = load_data(df)
+
+    X, X_val, y, y_val = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+    )
 
     model = mlflow.lightgbm.load_model("models:/loan_amount_regressor@production")
 

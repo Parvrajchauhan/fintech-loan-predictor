@@ -2,6 +2,7 @@
 
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split 
 import mlflow
 import mlflow.xgboost
 from sklearn.metrics import (
@@ -56,6 +57,9 @@ if __name__ == "__main__":
     df = apply_imputation(df, stats)
     X, y = load_data(df)
 
+    X, X_val, y, y_val = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+    )
     model = mlflow.xgboost.load_model(MODEL_URI)
     probs = model.predict_proba(X)[:, 1]
 
@@ -77,6 +81,17 @@ if __name__ == "__main__":
     mlflow.log_metric("eval_roc_auc", roc_auc)
     mlflow.log_metric("eval_pr_auc", pr_auc)
     mlflow.log_metric("eval_ks", ks)
+    
+    low_cutoff = np.quantile(probs, 0.30)
+    high_cutoff = np.quantile(probs, 0.70)
+
+    cutoffs = {
+        "low_risk_max_pd": float(low_cutoff),
+        "medium_risk_max_pd": float(high_cutoff),
+    }
+    
+    pd.Series(cutoffs).to_json("risk_cutoffs.json")
+    mlflow.log_artifact("risk_cutoffs.json")
 
     print("\n=== MODEL EVALUATION SUMMARY ===")
     print(f"ROC-AUC : {roc_auc:.4f}")

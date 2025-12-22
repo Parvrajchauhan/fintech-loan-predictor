@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import mlflow
+import joblib
 import mlflow.lightgbm
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -63,7 +64,7 @@ final_features_regression = [
     "OCCUPATION_TYPE",
     "ORGANIZATION_TYPE",
 ]
-
+joblib.dump(final_features_regression, "model_features_reg.pkl")
 
 TARGET = "AMT_CREDIT"
 
@@ -118,6 +119,7 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri("http://127.0.0.1:5000/")
 
     with mlflow.start_run():
+        mlflow.log_artifact("model_features_reg.pkl")
         df = build_all_features(paths)
         stats = fit_imputer(df)
         df = apply_imputation(df, stats)

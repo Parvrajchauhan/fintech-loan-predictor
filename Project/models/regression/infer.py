@@ -1,26 +1,7 @@
 import pandas as pd
-from Project.models.Regression.explain import X_shap
 import mlflow.lightgbm
 from sklearn.preprocessing import LabelEncoder
 import shap
-from Project.features.build_features import build_all_features
-from Project.features.imputation import NUM_MEDIAN, NUM_ZERO, CAT_UNKNOWN, fit_imputer, apply_imputation
-from Project.models.regression.train import load_data
-
-from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = PROJECT_ROOT / "data" / "raw"
-
-paths = {
-    "application_train": DATA_DIR / "application_train.csv",
-    "bureau": DATA_DIR / "bureau.csv",
-    "bureau_balance": DATA_DIR / "bureau_balance.csv",
-    "pos": DATA_DIR / "POS_CASH_balance.csv",
-    "installments": DATA_DIR / "installments_payments.csv",
-    "previous_application": DATA_DIR / "previous_application.csv",
-    "credit_card": DATA_DIR / "credit_card_balance.csv",
-}
 
 final_features_regression = [
 
