@@ -9,14 +9,17 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from lightgbm import LGBMRegressor
 from mlflow.tracking import MlflowClient
-
+from Project.models.regression.feature_list import final_features_regression
 from Project.features.build_features import build_all_features
+from Project.db.repositories import save_dataframe
 from Project.features.imputation import NUM_MEDIAN, NUM_ZERO, CAT_UNKNOWN, fit_imputer, apply_imputation
 
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "regression"
 DATA_DIR = PROJECT_ROOT / "data" / "raw"
+ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 paths = {
     "application_train": DATA_DIR / "application_train.csv",
@@ -29,42 +32,10 @@ paths = {
 }
 
 
-final_features_regression = [
-
-    # numeric
-    "AMT_INCOME_TOTAL",
-    "DAYS_BIRTH",
-    "DAYS_REGISTRATION",
-    "CNT_FAM_MEMBERS",
-    "REGION_RATING_CLIENT",
-    "REGION_POPULATION_RELATIVE",
-
-    "EXT_SOURCE_1",
-    "EXT_SOURCE_2",
-    "EXT_SOURCE_3",
-
-    "Annuity_to_Income_Ratio",
-
-    # POS (light usage signals)
-    "pos_mean_cnt_instalment",
-
-    # Previous applications
-    "avg_prev_amt_credit",
-    "prev_num_approved",
-
-    # Credit card
-    "avg_cc_max_limit_used",
-
-    # categorical
-    "NAME_CONTRACT_TYPE",
-    "NAME_INCOME_TYPE",
-    "NAME_EDUCATION_TYPE",
-    "NAME_FAMILY_STATUS",
-    "NAME_HOUSING_TYPE",
-    "OCCUPATION_TYPE",
-    "ORGANIZATION_TYPE",
-]
-joblib.dump(final_features_regression, "model_features_reg.pkl")
+joblib.dump(
+    final_features_regression,
+    ARTIFACTS_DIR / "model_features_reg.pkl"
+)
 
 TARGET = "AMT_CREDIT"
 
@@ -97,6 +68,7 @@ def build_model():
 
 
 def train_model(X, y):
+    
     X_train, X_val, y_train, y_val = train_test_split(
         X, y, test_size=0.25, random_state=42
     )
@@ -119,11 +91,17 @@ if __name__ == "__main__":
     mlflow.set_tracking_uri("http://127.0.0.1:5000/")
 
     with mlflow.start_run():
-        mlflow.log_artifact("model_features_reg.pkl")
+        mlflow.log_artifact(str(ARTIFACTS_DIR / "model_features_reg.pkl"))
         df = build_all_features(paths)
         stats = fit_imputer(df)
         df = apply_imputation(df, stats)
         X, y = load_data(df)
+        
+        feature_snapshot=df.drop(columns=[TARGET]).sample(2000, random_state=42)
+        save_dataframe(
+            feature_snapshot,
+            table_name="loan_regression_system_data"
+        )
 
         model, val_mae, val_rmse,val_mape= train_model(X, y)
 

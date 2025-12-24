@@ -1,31 +1,18 @@
 
 import pandas as pd
-import shap
 import xgboost as xgb
 import mlflow
 import mlflow.xgboost
 import matplotlib.pyplot as plt
 
-
-from Project.features.build_features import build_all_features
-from Project.features.imputation import NUM_MEDIAN, NUM_ZERO, CAT_UNKNOWN, fit_imputer, apply_imputation
-from Project.models.classification.train import load_data
-
+from Project.db.repositories import load_dataframe
+from Project.models.classification.feature_list import final_features_classification
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "raw"
-
-paths = {
-    "application_train": DATA_DIR / "application_train.csv",
-    "bureau": DATA_DIR / "bureau.csv",
-    "bureau_balance": DATA_DIR / "bureau_balance.csv",
-    "pos": DATA_DIR / "POS_CASH_balance.csv",
-    "installments": DATA_DIR / "installments_payments.csv",
-    "previous_application": DATA_DIR / "previous_application.csv",
-    "credit_card": DATA_DIR / "credit_card_balance.csv",
-}
-
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "classification"
+ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 MODEL_URI = "models:/loan_default_classifier@production"
 TARGET = "TARGET"
@@ -36,14 +23,13 @@ ID_COL = "SK_ID_CURR"
 if __name__ == "__main__":
     mlflow.set_experiment("loan_default_classification")
     mlflow.set_tracking_uri("http://127.0.0.1:5000/")
-    df = build_all_features(paths)
-    stats = fit_imputer(df)
-    df = apply_imputation(df, stats)
-    X, y = load_data(df)
+    X_shap= load_dataframe(
+        "loan_classification_system_data",
+        columns=final_features_classification,
+        limit=1000)
 
     model = mlflow.xgboost.load_model(MODEL_URI)
     
-    X_shap = X.sample(1000, random_state=42)
     booster = model.get_booster()
     dmat = xgb.DMatrix(X_shap)
     # get SHAP contributions
@@ -60,7 +46,7 @@ if __name__ == "__main__":
         figsize=(14, 6)
         )
     plt.tight_layout()
-    plt.savefig("shap_summary_classification.png")
+    plt.savefig(ARTIFACTS_DIR / "shap_summary_classification.png")
     plt.close()
 
     # Local (single user)
@@ -71,10 +57,10 @@ if __name__ == "__main__":
     plt.ylabel("Features", fontsize=12)
     plt.tight_layout()  
     plt.show()
-    plt.savefig("shap_local_classification.png")
+    plt.savefig(ARTIFACTS_DIR / "shap_local_classification.png")
     plt.close()
 
-    mlflow.log_artifact("shap_summary_classification.png")
-    mlflow.log_artifact("shap_local_classification.png")
+    mlflow.log_artifact(str(ARTIFACTS_DIR / "shap_summary_classification.png"))
+    mlflow.log_artifact(str(ARTIFACTS_DIR / "shap_local_classification.png"))
 
     print("SHAP explanations generated.")

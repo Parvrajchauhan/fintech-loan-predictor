@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from api.routes_class import router as classification_router
 from api.routes_reg import router as regression_router
+from Project.db.init_db import init_tables
 
 app = FastAPI(
     title="Loan Risk & Amount Prediction API",
@@ -10,6 +11,17 @@ app = FastAPI(
         "using MLflow-registered models"
     ),
 )
+
+
+
+@app.on_event("startup")
+def on_startup():
+    """
+    Runs once when the application starts.
+    Safe to run multiple times (idempotent).
+    """
+    init_tables()
+
 
 # Routers
 app.include_router(

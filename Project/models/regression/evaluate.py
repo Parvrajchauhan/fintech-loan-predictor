@@ -14,6 +14,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "raw"
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "regression"
+ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 paths = {
     "application_train": DATA_DIR / "application_train.csv",
@@ -77,7 +79,7 @@ def plot_residuals(residuals):
     plt.xlabel("Error")
     plt.ylabel("Count")
     plt.tight_layout()
-    plt.savefig("residuals.png")
+    plt.savefig(ARTIFACTS_DIR / "residuals.png")
     plt.close()
 
 if __name__ == "__main__":   
@@ -101,8 +103,9 @@ if __name__ == "__main__":
     mlflow.log_metric("eval_mae", mae)
     mlflow.log_metric("eval_rmse", rmse)
     mlflow.log_metric("eval_mape", mape)
-    mlflow.log_artifact("residuals.png")
-
+    mlflow.log_artifact(
+    str(ARTIFACTS_DIR / "residuals.png")
+)
     print(f"MAE: {mae:.2f} | RMSE: {rmse:.2f} | MAPE: {mape:.2f}%")
     segment_analysis(model,X,y)
 

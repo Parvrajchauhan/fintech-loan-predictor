@@ -1,8 +1,11 @@
 import json
-import mlflow.lightgbm
+import pandas as pd
 import mlflow.xgboost
+import mlflow.lightgbm
 from functools import lru_cache
+from typing import Dict, List
 
+from Project.db.repositories import load_single_row
 
 MODEL_URI_CLASS = "models:/loan_default_classifier@production"
 MODEL_URI_REG = "models:/loan_amount_regressor@production"
@@ -10,6 +13,8 @@ MODEL_URI_REG = "models:/loan_amount_regressor@production"
 RISK_CUTOFF_PATH = "risk_cutoffs.json"
 THRESHOLD = 0.45
 
+
+# MLflow
 @lru_cache()
 def load_model():
     return mlflow.xgboost.load_model(MODEL_URI_CLASS)
@@ -33,3 +38,34 @@ def assign_risk_segment(prob: float, cutoffs: dict) -> str:
 @lru_cache()
 def load_regression_model():
     return mlflow.lightgbm.load_model(MODEL_URI_REG)
+
+
+# PostgreSQL
+def fetch_and_merge_features(
+    table_name: str,
+    index_id: int,
+    user_features: Dict
+) -> Dict:
+    """
+    Fetch ALL system features from Postgres for a given index_id
+    and override them with user-provided values.
+    """
+
+    # Fetch single row directly from DB
+    df = load_single_row(
+        table_name=table_name,
+        index_id=index_id,
+        columns=None  # fetch all columns
+    )
+
+    if df.empty:
+        raise ValueError(f"INDEX_ID {index_id} not found in {table_name}")
+
+    # System features from DB
+    system_features = df.iloc[0].to_dict()
+    system_features.pop("index_id", None)
+
+    # Override with user-provided fields
+    final_features = {**system_features, **user_features}
+
+    return final_features

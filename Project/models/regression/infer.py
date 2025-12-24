@@ -2,42 +2,9 @@ import pandas as pd
 import mlflow.lightgbm
 from sklearn.preprocessing import LabelEncoder
 import shap
-
-final_features_regression = [
-
-    # numeric
-    "AMT_INCOME_TOTAL",
-    "DAYS_BIRTH",
-    "DAYS_REGISTRATION",
-    "CNT_FAM_MEMBERS",
-    "REGION_RATING_CLIENT",
-    "REGION_POPULATION_RELATIVE",
-
-    "EXT_SOURCE_1",
-    "EXT_SOURCE_2",
-    "EXT_SOURCE_3",
-
-    "Annuity_to_Income_Ratio",
-
-    # POS (light usage signals)
-    "pos_mean_cnt_instalment",
-
-    # Previous applications
-    "avg_prev_amt_credit",
-    "prev_num_approved",
-
-    # Credit card
-    "avg_cc_max_limit_used",
-
-    # categorical
-    "NAME_CONTRACT_TYPE",
-    "NAME_INCOME_TYPE",
-    "NAME_EDUCATION_TYPE",
-    "NAME_FAMILY_STATUS",
-    "NAME_HOUSING_TYPE",
-    "OCCUPATION_TYPE",
-    "ORGANIZATION_TYPE",
-]
+from Project.models.regression.feature_list import final_features_regression
+from Project.features.imputation import CAT_UNKNOWN
+from Project.db.repositories import load_dataframe
 
 MODEL_URI = "models:/loan_amount_regressor@production"
 
@@ -46,7 +13,11 @@ def load_model():
 
 
 if __name__ == "__main__":
-    sample = pd.read_csv("data/sample_inference_row.csv")
+    sample = load_dataframe(
+        "loan_regression_system_data",
+        columns=final_features_regression,
+        limit=1000
+    )
     cat_cols= [col for col in final_features_regression if col in CAT_UNKNOWN]
     for col in cat_cols:
         sample[col] = sample[col].fillna("Unknown")
@@ -57,11 +28,12 @@ if __name__ == "__main__":
 
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(sample)
+    i=9
     shap.waterfall_plot(
     shap.Explanation(
-        values=shap_values,
+        values=shap_values[i],
         base_values=explainer.expected_value,
-        data=sample.iloc,
+        data=sample.iloc[i],
         feature_names=sample.columns))
 
     print("Predicted loan amount:", preds[0])

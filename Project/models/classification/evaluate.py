@@ -21,6 +21,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "raw"
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "classification"
+ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
 paths = {
     "application_train": DATA_DIR / "application_train.csv",
@@ -90,8 +92,8 @@ if __name__ == "__main__":
         "medium_risk_max_pd": float(high_cutoff),
     }
     
-    pd.Series(cutoffs).to_json("risk_cutoffs.json")
-    mlflow.log_artifact("risk_cutoffs.json")
+    pd.Series(cutoffs).to_json(ARTIFACTS_DIR /"risk_cutoffs.json")
+    mlflow.log_artifact(str(ARTIFACTS_DIR /"risk_cutoffs.json"))
 
     print("\n=== MODEL EVALUATION SUMMARY ===")
     print(f"ROC-AUC : {roc_auc:.4f}")
