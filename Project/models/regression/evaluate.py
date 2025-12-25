@@ -1,31 +1,14 @@
-# models/regression/evaluate.py
-
-import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import mlflow
 import mlflow.lightgbm
 import matplotlib.pyplot as plt
-from Project.features.build_features import build_all_features
-from Project.features.imputation import NUM_MEDIAN, NUM_ZERO, CAT_UNKNOWN, fit_imputer, apply_imputation
-from Project.models.regression.train import load_data
-
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = PROJECT_ROOT / "data" / "raw"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "regression"
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
-paths = {
-    "application_train": DATA_DIR / "application_train.csv",
-    "bureau": DATA_DIR / "bureau.csv",
-    "bureau_balance": DATA_DIR / "bureau_balance.csv",
-    "pos": DATA_DIR / "POS_CASH_balance.csv",
-    "installments": DATA_DIR / "installments_payments.csv",
-    "previous_application": DATA_DIR / "previous_application.csv",
-    "credit_card": DATA_DIR / "credit_card_balance.csv",
-}
 
 
 def evaluate(model, X, y):
@@ -40,7 +23,7 @@ def evaluate(model, X, y):
     return mae, rmse, residuals,mape
 
 
-def segment_analysis(model,X,y):
+def segment_analysis(model,X,y,mae):
     # Segment analysis
     loan_sizes = np.expm1(y) 
     list=[]
@@ -82,17 +65,9 @@ def plot_residuals(residuals):
     plt.savefig(ARTIFACTS_DIR / "residuals.png")
     plt.close()
 
-if __name__ == "__main__":   
+def eval(X,y):
     mlflow.set_experiment("loan_amount_regression_prob")
     mlflow.set_tracking_uri("http://127.0.0.1:5000/")
-    df = build_all_features(paths)
-    stats = fit_imputer(df)
-    df = apply_imputation(df, stats)
-    X, y = load_data(df)
-
-    X, X_val, y, y_val = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=42
-    )
 
     model = mlflow.lightgbm.load_model("models:/loan_amount_regressor@production")
 
@@ -107,6 +82,6 @@ if __name__ == "__main__":
     str(ARTIFACTS_DIR / "residuals.png")
 )
     print(f"MAE: {mae:.2f} | RMSE: {rmse:.2f} | MAPE: {mape:.2f}%")
-    segment_analysis(model,X,y)
+    segment_analysis(model,X,y,mae)
 
     

@@ -10,12 +10,15 @@ def save_dataframe(
 ):
     engine = get_engine()
 
-    df.to_sql(
-        name=table_name,
-        con=engine,
-        if_exists=if_exists,
-        index=False
-    )
+    df.to_sql("loan_regression_system_data", engine, if_exists="replace", index=False)
+
+    add_pk_sql = f"""
+    ALTER TABLE {table_name}
+    ADD COLUMN IF NOT EXISTS index_id SERIAL PRIMARY KEY;
+    """
+
+    with engine.begin() as conn:
+        conn.execute(text(add_pk_sql))
 
 
 def load_dataframe(
@@ -24,9 +27,12 @@ def load_dataframe(
     limit: int | None = None
 ) -> pd.DataFrame:
     engine = get_engine()
-
-    cols = ", ".join(columns) if columns else "*"
+    if columns:
+        cols = ", ".join(f'"{c}"' for c in columns)
+    else:
+        cols = "*"
     query = f"SELECT {cols} FROM {table_name}"
+
 
     if limit:
         query += f" LIMIT {limit}"

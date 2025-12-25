@@ -1,7 +1,7 @@
-import pandas as pd
 import mlflow.lightgbm
 from sklearn.preprocessing import LabelEncoder
 import shap
+import numpy as np
 from Project.models.regression.feature_list import final_features_regression
 from Project.features.imputation import CAT_UNKNOWN
 from Project.db.repositories import load_dataframe
@@ -12,7 +12,7 @@ def load_model():
     return mlflow.lightgbm.load_model(MODEL_URI)
 
 
-if __name__ == "__main__":
+def infer():
     sample = load_dataframe(
         "loan_regression_system_data",
         columns=final_features_regression,
@@ -36,4 +36,4 @@ if __name__ == "__main__":
         data=sample.iloc[i],
         feature_names=sample.columns))
 
-    print("Predicted loan amount:", preds[0])
+    print("Predicted loan amount:", np.expm1(preds[0]))
