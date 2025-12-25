@@ -20,19 +20,9 @@ from Project.models.classification.train import load_data
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = PROJECT_ROOT / "data" / "raw"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "classification"
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
-paths = {
-    "application_train": DATA_DIR / "application_train.csv",
-    "bureau": DATA_DIR / "bureau.csv",
-    "bureau_balance": DATA_DIR / "bureau_balance.csv",
-    "pos": DATA_DIR / "POS_CASH_balance.csv",
-    "installments": DATA_DIR / "installments_payments.csv",
-    "previous_application": DATA_DIR / "previous_application.csv",
-    "credit_card": DATA_DIR / "credit_card_balance.csv",
-}
 
 TARGET = "TARGET"
 ID_COL = "SK_ID_CURR"
@@ -50,18 +40,11 @@ def ks_statistic(y_true, y_prob):
 
 
 
-if __name__ == "__main__":
+def eval(X,y):
     
     mlflow.set_experiment("loan_default_classification")
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    df = build_all_features(paths)
-    stats = fit_imputer(df)
-    df = apply_imputation(df, stats)
-    X, y = load_data(df)
 
-    X, X_val, y, y_val = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=42
-    )
     model = mlflow.xgboost.load_model(MODEL_URI)
     probs = model.predict_proba(X)[:, 1]
 

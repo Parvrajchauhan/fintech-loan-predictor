@@ -86,23 +86,28 @@ def build_model(scale_pos_weight):
     )
 
 
-if __name__ == "__main__":
+def build():
+    df = build_all_features(paths)
+    stats = fit_imputer(df)
+    df = apply_imputation(df, stats)
+    feature_snapshot=df[final_features_classification].sample(2000, random_state=42)
+    save_dataframe(
+        feature_snapshot,
+        table_name="loan_classification_system_data"
+    )
+    return df
+
+
+def train():
     mlflow.set_experiment("loan_default_classification")
     mlflow.set_tracking_uri("http://127.0.0.1:5000")
 
     with mlflow.start_run():
         mlflow.log_artifact(str(ARTIFACTS_DIR /"model_features_class.pkl"))
-        df = build_all_features(paths)
-        stats = fit_imputer(df)
-        df = apply_imputation(df, stats)
         
+        df=build()
         X, y = load_data(df)
 
-        feature_snapshot=df.drop(columns=[TARGET]).sample(2000, random_state=42)
-        save_dataframe(
-            feature_snapshot,
-            table_name="loan_classification_system_data"
-        )
 
         X_train, X_val, y_train, y_val = train_test_split(
             X, y, test_size=0.2, random_state=42, stratify=y
@@ -161,3 +166,4 @@ if __name__ == "__main__":
         )
 
         print(f"Training complete |ROC-AUC: {roc_auc:.4f} | recall: {recall:.4f} | precision: {precision:.4f} | ks: {ks_scores.max():.4f}")
+        return X_val,y_val

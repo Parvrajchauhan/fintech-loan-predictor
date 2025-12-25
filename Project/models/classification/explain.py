@@ -4,13 +4,13 @@ import xgboost as xgb
 import mlflow
 import mlflow.xgboost
 import matplotlib.pyplot as plt
-
+from Project.features.imputation import CAT_UNKNOWN
+from sklearn.preprocessing import LabelEncoder
 from Project.db.repositories import load_dataframe
 from Project.models.classification.feature_list import final_features_classification
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = PROJECT_ROOT / "data" / "raw"
 ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "classification"
 ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -20,14 +20,21 @@ ID_COL = "SK_ID_CURR"
 
 
 
-if __name__ == "__main__":
+def explain():
     mlflow.set_experiment("loan_default_classification")
     mlflow.set_tracking_uri("http://127.0.0.1:5000/")
     X_shap= load_dataframe(
         "loan_classification_system_data",
         columns=final_features_classification,
         limit=1000)
-
+    cat_cols= [col for col in final_features_classification if col in CAT_UNKNOWN]
+    for col in cat_cols:
+        X_shap[col] = X_shap[col].astype(str)
+        most_freq = X_shap[col].mode()[0]
+        X_shap[col] = X_shap[col].fillna(most_freq)
+        le = LabelEncoder()
+        le.fit(X_shap[col])
+        X_shap[col] = le.transform(X_shap[col])
     model = mlflow.xgboost.load_model(MODEL_URI)
     
     booster = model.get_booster()

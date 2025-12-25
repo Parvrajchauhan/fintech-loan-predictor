@@ -83,15 +83,13 @@ def train_model(X, y):
 
 def build():
     df = build_all_features(paths)
-    
+    stats = fit_imputer(df)
+    df = apply_imputation(df, stats)
     feature_snapshot=df[final_features_regression].sample(2000, random_state=42)
     save_dataframe(
         feature_snapshot,
         table_name="loan_regression_system_data"
     )
-
-    stats = fit_imputer(df)
-    df = apply_imputation(df, stats)
     X, y = load_data(df)
     return X,y
         
