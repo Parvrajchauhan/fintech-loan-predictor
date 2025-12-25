@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from api.routes_class import router as classification_router
-from api.routes_reg import router as regression_router
+from Project.api.routes_class import router as classification_router
+from Project.api.routes_reg import router as regression_router
 from Project.db.init_db import init_tables
 
 app = FastAPI(

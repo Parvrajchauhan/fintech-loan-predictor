@@ -1,8 +1,8 @@
 import pandas as pd
 import joblib
 from fastapi import APIRouter, HTTPException
-
-from schemas.schemas_classification import (
+from Project.models.classification.train import encode
+from Project.schemas.schemas_classification import (
     LoanDefaultPredictionRequest,
     LoanDefaultPredictionResponse,
 )
@@ -15,11 +15,13 @@ from Project.api.deps import (
 )
 
 from Project.api.class_features import get_classification_features
-
+from pathlib import Path
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "classification"
 
 router = APIRouter()
 
-MODEL_FEATURES_CLASS = joblib.load("model_features_class.pkl")
+MODEL_FEATURES_CLASS = joblib.load(ARTIFACTS_DIR /"model_features_class.pkl")
 
 
 @router.post(
@@ -30,7 +32,7 @@ MODEL_FEATURES_CLASS = joblib.load("model_features_class.pkl")
 def predict(payload: LoanDefaultPredictionRequest):
     try:
         final_features = get_classification_features(
-            table_name="classification_features",   # feature-store table
+            table_name="loan_classification_system_data",   # feature-store table
             index_id=payload.index_id,
             user_features=payload.model_dump(exclude={"index_id"}),
         )
@@ -42,7 +44,13 @@ def predict(payload: LoanDefaultPredictionRequest):
     cutoffs = load_risk_cutoffs()
 
     df = pd.DataFrame([final_features])
-    df = df[MODEL_FEATURES_CLASS]   # enforce training order
+    df = df[MODEL_FEATURES_CLASS] 
+    df=encode(df)
+
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    
+    df = df.fillna(0.0)
 
     prob = float(model.predict_proba(df)[:, 1][0])
 

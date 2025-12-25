@@ -1,19 +1,21 @@
 import pandas as pd
 import joblib
 from fastapi import APIRouter, HTTPException
-
-from schemas.schemas_regression import (
+from Project.models.regression.train import encode
+from Project.schemas.schemas_regression import (
     LoanAmountPredictionRequest,
     LoanAmountPredictionResponse,
 )
 
 from Project.api.deps import load_regression_model
 from Project.api.reg_features import get_regression_features
-
-
+from pathlib import Path
+import numpy as np
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts" / "regression"
 router = APIRouter()
 
-MODEL_FEATURES_REG = joblib.load("model_features_reg.pkl")
+MODEL_FEATURES_REG = joblib.load(ARTIFACTS_DIR /"model_features_reg.pkl")
 
 
 @router.post(
@@ -26,7 +28,7 @@ def predict_loan_amount(payload: LoanAmountPredictionRequest):
     # Fetch + merge system features
     try:
         final_features = get_regression_features(
-            table_name="regression_features",   # feature-store table
+            table_name="loan_regression_system_data",   # feature-store table
             index_id=payload.index_id,
             user_features=payload.model_dump(exclude={"index_id"}),
         )
@@ -38,8 +40,13 @@ def predict_loan_amount(payload: LoanAmountPredictionRequest):
 
     df = pd.DataFrame([final_features])
     df = df[MODEL_FEATURES_REG]   # enforce training schema
+    df=encode(df)
 
-    predicted_amount = float(model.predict(df)[0])
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    
+    df = df.fillna(0.0)
+    predicted_amount = np.expm1(float(model.predict(df)[0]))
 
     # Confidence band (demo-safe)
     lower_bound = predicted_amount * 0.9

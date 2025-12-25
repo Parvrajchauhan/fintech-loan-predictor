@@ -36,13 +36,18 @@ joblib.dump(
 
 TARGET = "AMT_CREDIT"
 
-def load_data(df:pd.DataFrame):
-    X = df[final_features_regression]
-    y = np.log1p(df[TARGET])
+
+def encode(X):
     cat_cols= [col for col in final_features_regression if col in CAT_UNKNOWN]
     for col in cat_cols:
         X[col] = X[col].fillna("Unknown")
         X[col] = LabelEncoder().fit_transform(X[col])
+    return X
+
+def load_data(df:pd.DataFrame):
+    X = df[final_features_regression]
+    y = np.log1p(df[TARGET])
+    X=encode(X)
     return X, y
 
 

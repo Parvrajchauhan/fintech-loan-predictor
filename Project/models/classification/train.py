@@ -52,10 +52,7 @@ ID_COL = "SK_ID_CURR"
 MODEL_NAME = "loan_default_classifier"
 THRESHOLD = 0.45
 
-
-def load_data(df:pd.DataFrame):
-    X = df[final_features_classification]
-    y =df[TARGET]
+def encode(X):
     cat_cols= [col for col in final_features_classification if col in CAT_UNKNOWN]
     for col in cat_cols:
         X[col] = X[col].astype(str)
@@ -64,6 +61,13 @@ def load_data(df:pd.DataFrame):
         le = LabelEncoder()
         le.fit(X[col])
         X[col] = le.transform(X[col])
+    return X
+
+
+def load_data(df:pd.DataFrame):
+    X = df[final_features_classification]
+    y =df[TARGET]
+    X=encode(X)
     return X, y
 
 
